@@ -1,0 +1,100 @@
+package com.example.basedate_01;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
+import android.os.Bundle;
+import android.view.View;
+import android.widget.Button;
+import android.widget.EditText;
+import android.widget.Toast;
+import com.google.firebase.database.ChildEventListener;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+
+import java.util.ArrayList;
+
+public class MainActivity extends AppCompatActivity
+{
+    private static int MAX_MESSAGE_LENGTH = 150;//ввели переменную и присвоили кол-во символов
+    FirebaseDatabase database = FirebaseDatabase.getInstance();
+    //здесь мы связываем базу данных в режиме реального времени
+    DatabaseReference myRef = database.getReference("messages");
+    //здесь мы называем нашу базу данных
+    EditText mEditTextMessage; //тут мы будем вводить текст
+    Button mSendButton;//кнопка отправить сообщение
+    RecyclerView mMessagesRecycler;
+    //здесь используется для отображения текста после нажатия кнопки отправки сообщения
+    ArrayList<String> messages = new ArrayList<>();
+    //используется для
+    @Override
+    protected void onCreate(Bundle savedInstanceState)
+    {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
+        mSendButton = findViewById(R.id.send_message_b);
+        mEditTextMessage = findViewById(R.id.message_input);
+        mMessagesRecycler = findViewById(R.id.messages_recycler);
+
+        mMessagesRecycler.setLayoutManager(new LinearLayoutManager(this));
+        final DataAdapter dataAdapter = new DataAdapter(this,messages);
+        mMessagesRecycler.setAdapter(dataAdapter);
+
+        mSendButton.setOnClickListener(new View.OnClickListener()//здесь обработчик события
+        {
+            @Override
+            public void onClick(View v)
+            {
+                String msg = mEditTextMessage.getText().toString();
+                if (msg.equals(""))//здесь проверяется пустое сообщение или нет
+                {
+                    Toast.makeText(getApplicationContext(), "Введите сообщение!",Toast.LENGTH_SHORT).show();
+                    return;//прерывает функцию
+                }
+                if (msg.length()>MAX_MESSAGE_LENGTH)//здесь проверяется длина символов в тексте
+                {
+                    Toast.makeText(getApplicationContext(), "Слишком длинное сообщение",Toast.LENGTH_SHORT).show();
+                    return;//прерывает функцию
+                }
+                //эта часть мы добавляем и сохраняем в базу данных для хранения
+                myRef.push().setValue(msg);
+                mEditTextMessage.setText("");
+            }
+        });
+
+        myRef.addChildEventListener(new ChildEventListener()
+        {
+            @Override
+            public void onChildAdded(@NonNull DataSnapshot dataSnapshot, @Nullable String s)
+            //Этот метод используем для создания текста и сохранением в хранилище
+                    //а также обновляет страницы сообщения
+            {
+                //эта часть добавляется тесктом в базу данных
+                String msg = dataSnapshot.getValue(String.class);
+                messages.add(msg);
+                dataAdapter.notifyDataSetChanged();//при помощи этой функции она
+                //автоматически обновляет страницы сообщения
+                mMessagesRecycler.smoothScrollToPosition(messages.size());
+            }
+            @Override //далее эта часть я не трогаю все остается неизменной
+            public void onChildChanged(@NonNull DataSnapshot dataSnapshot, @Nullable String s)
+            {
+            }
+            @Override
+            public void onChildRemoved(@NonNull DataSnapshot dataSnapshot)
+            {
+            }
+            @Override
+            public void onChildMoved(@NonNull DataSnapshot dataSnapshot, @Nullable String s)
+            {
+            }
+            @Override
+            public void onCancelled(@NonNull DatabaseError databaseError)
+            {
+            }
+        });
+    }
+}

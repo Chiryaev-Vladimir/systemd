@@ -1,0 +1,192 @@
+package com.example.basedate_01;
+
+import android.content.Intent;
+import android.os.Bundle;
+import android.text.TextUtils;
+import android.view.View;
+import android.widget.Button;
+import android.widget.EditText;
+import android.widget.TextView;
+import android.widget.Toast;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.appcompat.app.AppCompatActivity;
+
+import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.Task;
+import com.google.firebase.auth.AuthResult;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
+//раздел 1
+public class LoginActivity extends AppCompatActivity {
+    private EditText edLogin, edPassword; //создаю элементы для текста Логина и Пароля
+    private FirebaseAuth mAuth;//связываю аутентификацию с базой данных
+    private Button bStart, bSighUp, bSignIn, bSignOut;//создаю элементы кнопки
+    //Обратите внимание я указываю кнопки по порядку 1.Войти(это как зарегистрированный аккаунт)
+    //2.Зарегистрироваться это для новых аккаунтов
+    //3.Войти (Чтобы войти существующий аккаунт)
+    //4.Выйти из аккаунта, это и так понятно.
+    private TextView tvUserName;
+
+    @Override
+    public void onCreate(@Nullable Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.login_layout);
+        init();
+    }
+    //раздел 2
+    @Override
+    protected void onStart() {//Здесь я создаю быстрый вход без возможности повторного ввода для аккаунта,
+        // а также можно выйти из аккаунта и использовать другой аккаунт
+        super.onStart();
+        FirebaseUser cUser=mAuth.getCurrentUser();
+        if(cUser != null)//здесь проверяет у пользователя есть аккаунт или нет
+        {
+            showSigned();//здесь уже выполняется, когда у пользователя есть аккаунт и вошёл его
+            //но если пользователь выйдет из аккаунта, затем снова запустит приложение,
+            //то выполняется иначе т. е. else внизу.
+            String userName = "Вы вошли как "+cUser.getEmail();
+            tvUserName.setText(userName);
+            Toast.makeText(this, "Вы зарегистрированы как "+cUser.getEmail(), Toast.LENGTH_SHORT).show();
+            //Здесь выводит текст с содержанием
+        }
+        else
+        {
+            notSigned();//Здесь у пользователя нет аккаунта
+            Toast.makeText(this, "Вы незарегистрированы", Toast.LENGTH_SHORT).show();
+            //Здесь выводит текст с содержанием
+        }
+    }
+    //раздел 3
+    private void init()//эта функция позволяет инициализировать нашии функции.
+    // Смотрите раздел 1 наверху
+    {
+        bSignOut = findViewById(R.id.bSignOut);
+        tvUserName = findViewById(R.id.tvUserEmail);
+        bStart = findViewById(R.id.bStart);
+        bSighUp = findViewById(R.id.bSignUp);
+        bSignIn = findViewById(R.id.bSignIn);
+        edLogin = findViewById(R.id.edLogin);
+        edPassword = findViewById(R.id.edPassword);
+        mAuth = FirebaseAuth.getInstance();
+    }
+    //раздел кнопок
+    public void onClickSignUp(View view)//кнопка зарегистрироваться
+    {
+        //тут даем кнопку нашей функции
+        if(!TextUtils.isEmpty(edLogin.getText().toString()) && !TextUtils.isEmpty(edPassword.getText().toString()))//Здесь мы проверяем пусты ли в тексте
+            {
+            mAuth.createUserWithEmailAndPassword(edLogin.getText().toString(),edPassword.getText().toString()).addOnCompleteListener(new OnCompleteListener<AuthResult>()
+            //здесь проверяет если ли существующий аккаунт нет, то создается новый.
+            {
+                @Override
+                public void onComplete(@NonNull Task<AuthResult> task) {
+                    if(task.isSuccessful())
+                    {
+                        showSigned();//здесь мы назначаем эту функцию. Смотрите на разделе функции внизу
+                        sendEmailVer();//здесь мы назначаем эту функцию. Смотрите на разделе функции внизу
+                        Toast.makeText(getApplicationContext(), "Регистрация прошло успешно", Toast.LENGTH_SHORT).show();
+                    }
+                    else
+                    {
+                        notSigned();//здесь мы назначаем эту функцию. Смотрите на разделе функции внизу
+                        Toast.makeText(getApplicationContext(), "Произошла ошибка регистрации", Toast.LENGTH_SHORT).show();
+                    }
+                }
+            });
+        }
+        else//если пустые тексты, то выводит это сообщение
+        {
+            Toast.makeText(getApplicationContext(), "Пожалуйста зарегистрируйтесь электронную почту и пароль", Toast.LENGTH_SHORT).show();
+        }
+    }
+    public void onClickSignIn(View view)//здесь кнопка войти в существующий аккаунт
+    {
+        if(!TextUtils.isEmpty(edLogin.getText().toString()) && !TextUtils.isEmpty(edPassword.getText().toString()))
+            //здесь также проверяет пустые тексты
+        {
+            mAuth.signInWithEmailAndPassword(edLogin.getText().toString(),edPassword.getText().toString()).addOnCompleteListener(this, new OnCompleteListener<AuthResult>()
+                //тут проверяет существующий аккаунт, если есть, то пользователь заходит в него
+            {
+                @Override
+                public void onComplete(@NonNull Task<AuthResult> task) {
+                    if(task.isSuccessful())
+                    {
+                        showSigned();//здесь мы назначаем эту функцию. Смотрите на разделе функции внизу
+                        Toast.makeText(getApplicationContext(), "Вы вошли успешно", Toast.LENGTH_SHORT).show();
+                    }
+                    else
+                    {
+                        notSigned();//здесь мы назначаем эту функцию. Смотрите на разделе функции внизу
+                        Toast.makeText(getApplicationContext(), "Неправильная электронная почта и пароль", Toast.LENGTH_SHORT).show();
+                    }
+                }
+            });
+        }
+    }
+    public void onClickSignOut (View view)//кнопка выхода из аккаунта, но обратите внимание
+            //вам будет придется снова вводить свою почту и пароль, если хотите войти свой аккаунт
+    {
+        FirebaseAuth.getInstance().signOut();
+        notSigned();
+    }
+    //раздел функции
+    private void showSigned()//здесь выполняется функция регистрации
+    {
+        FirebaseUser user = mAuth.getCurrentUser();
+        assert user != null;
+        if (user.isEmailVerified()) {
+            String userName = "Вы вошли как "+user.getEmail();
+            tvUserName.setText(userName);
+            bStart.setVisibility(View.VISIBLE);
+            bSignOut.setVisibility(View.VISIBLE);
+            tvUserName.setVisibility(View.VISIBLE);
+            edLogin.setVisibility(View.GONE);
+            edPassword.setVisibility(View.GONE);
+            bSighUp.setVisibility(View.GONE);
+            bSignIn.setVisibility(View.GONE);
+        }
+        else //здесь пользователь должен подтвердить почту, после чего пользователь должен
+        //нажать кнопку войти
+        {
+            Toast.makeText(getApplicationContext(), "Проверьте вашу электронную почту и подтвердите. после чего как подтвердили почту нажмите кнопку войти", Toast.LENGTH_SHORT).show();
+        }
+    }
+    private void notSigned ()//здесь выполняется функция незарегистрированных пользователей
+    {
+        bStart.setVisibility(View.GONE);
+        bSignOut.setVisibility(View.GONE);
+        tvUserName.setVisibility(View.GONE);
+        edLogin.setVisibility(View.VISIBLE);
+        edPassword.setVisibility(View.VISIBLE);
+        bSighUp.setVisibility(View.VISIBLE);
+        bSignIn.setVisibility(View.VISIBLE);
+    }
+    public void onClickStart(View view)//здесь кнопка для перехода другую страницу
+    {
+        Intent i = new Intent(LoginActivity.this, MainActivity.class);
+        startActivity(i);
+    }
+    private void sendEmailVer()//кнопка Верификации почты
+    {
+        FirebaseUser user = mAuth.getCurrentUser();
+        assert user != null;
+        mAuth.getCurrentUser().sendEmailVerification().addOnCompleteListener(new OnCompleteListener<Void>()
+                //здесь отправляет на почту для подтверждения
+        {
+            @Override
+            public void onComplete(@NonNull Task<Void> task)
+            {
+                if(task.isSuccessful())
+                {
+                    Toast.makeText(getApplicationContext(), "Проверьте вашу электронную почту и подтвердите", Toast.LENGTH_SHORT).show();
+                }
+                else
+                {
+                    Toast.makeText(getApplicationContext(), "Не удалось отправить почту", Toast.LENGTH_SHORT).show();
+                }
+            }
+        });
+    }
+}

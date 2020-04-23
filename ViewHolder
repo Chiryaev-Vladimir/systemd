@@ -1,0 +1,18 @@
+package com.example.basedate_01;
+import android.view.View;
+import android.widget.TextView;
+import androidx.recyclerview.widget.RecyclerView;
+
+public class ViewHolder extends RecyclerView.ViewHolder
+//функция extends мы усналедуем с помощью RecyclerView.ViewHolder
+//используем эту фукнцию для которого наши сообщения будут выводиться тут
+{
+    TextView message;//здесь текст
+    public ViewHolder(View itemView)
+    {
+    super(itemView);
+    message = itemView.findViewById(R.id.message_item);
+    //здесь указываем поле сообщения где находится в item_message.xml
+        //нашего элемента и прямо TextView с id="message_item"
+    }
+}
